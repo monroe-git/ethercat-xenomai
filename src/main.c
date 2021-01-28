@@ -25,7 +25,6 @@
 #include "ethercatprint.h"
 #include "pdo_def.h"
 #include "ecat_dc.h"
-#include "rftec02_r0.h"
 
 #define NSEC_PER_SEC 	1000000000
 #define EC_TIMEOUTMON 	500
@@ -127,7 +126,6 @@ boolean ecat_init(void)
 #endif
 
 			ec_config_map(&IOmap_MAXPOS);
-			//ec_config_map(&IOmap_RFT);
 
 #ifdef _USE_DC
 			ec_configdc();
@@ -156,7 +154,6 @@ boolean ecat_init(void)
 			rt_printf("Calculated workcounter %d\n", expectedWKC);
 
 			ec_slave[0].state = EC_STATE_OPERATIONAL;
-			ec_slave[RFTEC02_SLAVE_ID].state = EC_STATE_OPERATIONAL;
 
 			/* send one valid process data to make outputs in slaves happy*/
 			ec_send_processdata();
@@ -165,7 +162,7 @@ boolean ecat_init(void)
 			ec_writestate(0);
 			ec_statecheck(0, EC_STATE_OPERATIONAL, EC_TIMEOUTSTATE); //wait for OP
 
-			if (ec_slave[0].state == EC_STATE_OPERATIONAL && ec_slave[RFTEC02_SLAVE_ID].state == EC_STATE_OPERATIONAL)
+			if (ec_slave[0].state == EC_STATE_OPERATIONAL)
 			{
 				rt_printf("Operational state reached for all slaves.\n");
 				wkc_count = 0;
@@ -273,11 +270,8 @@ void demo_run(void *arg)
 	while (run)
 	{
 		//wait for next cycle	
-		update_RFTEC02_R0_OutputProcessData();
 		ec_send_processdata();
 		wkc = ec_receive_processdata(EC_TIMEOUTRET);
-		/* do RT control stuff here */
-		updateRFT_Data();	
 
 #ifdef _USE_DC		   
 		rt_ts+=(RTIME) (cycle_ns + toff);
@@ -392,10 +386,8 @@ void print_run(void *arg)
 	long stick=0;
 	rt_task_set_periodic(NULL, TM_NOW, 100000000);
 
-	while (run && isRunRFTDisplayThread)
+	while (run)
 	{
-		configCmdType = CMD_FT_CONT;
-		configParam[0] = configParam[1] = configParam[2] = 0;
 		rt_task_wait_period(NULL); 	//wait for next cycle
 
 		if (inOP==TRUE)
